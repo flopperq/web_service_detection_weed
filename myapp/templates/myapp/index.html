@@ -1,0 +1,98 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Сервис для распознавания сорняков</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
+    <script>
+        let imageUploaded = {% if uploaded_image_url %}true{% else %}false{% endif %};
+
+        function toggleForms() {
+            const fileOption = document.getElementById('upload_option_file').checked;
+            const urlOption = document.getElementById('upload_option_url').checked;
+
+            document.getElementById('file_form').style.display = fileOption ? 'block' : 'none';
+            document.getElementById('url_form').style.display = urlOption ? 'block' : 'none';
+        }
+
+        function toggleProcessButton() {
+            console.log("Image uploaded status: ", imageUploaded); // Debugging line
+            document.getElementById('process_image_button').disabled = !imageUploaded;
+        }
+
+        function handleImageUpload() {
+            // Устанавливаем значение переменной в true и показываем кнопку
+            imageUploaded = true;
+            console.log("Image uploaded set to true."); // Debugging line
+            toggleProcessButton();
+        }
+
+        function validateProcessImageForm() {
+            if (!imageUploaded) {
+                alert("Сначала загрузите изображение для обработки.");
+                return false;
+            }
+            return true;
+        }
+
+        window.onload = function() {
+            toggleForms();
+            toggleProcessButton();
+        }
+    </script>
+</head>
+<body>
+    <h1>Веб-Сервис для распознания сорняков на снимках сельскохозяйственных полей</h1>
+
+    <h2>Выберите способ загрузки изображения</h2>
+    <input type="radio" id="upload_option_file" name="upload_option" value="file" checked onchange="toggleForms()"> Загрузка файла
+    <input type="radio" id="upload_option_url" name="upload_option" value="url" onchange="toggleForms()"> URL изображения
+
+    <div id="file_form">
+        <h2>Загрузите изображение</h2>
+        <form action="/" method="post" enctype="multipart/form-data" onsubmit="handleImageUpload()">
+            {% csrf_token %}
+            {{ form.non_field_errors }}
+            <div class="form-field">
+                {{ form.image.label_tag }} {{ form.image }}
+                {{ form.image.errors }}
+            </div>
+            <input type="submit" name="upload_image" value="Загрузить">
+        </form>
+    </div>
+
+    <div id="url_form" style="display: none;">
+        <h2>Или введите URL изображения</h2>
+        <form action="/" method="post" onsubmit="handleImageUpload()">
+            {% csrf_token %}
+            {{ url_form.non_field_errors }}
+            <div class="form-field">
+                {{ url_form.image_url.label_tag }} {{ url_form.image_url }}
+                {{ url_form.image_url.errors }}
+            </div>
+            <input type="submit" name="upload_url" value="Загрузить">
+        </form>
+    </div>
+
+    {% if error_message %}
+        <p style="color: red;">{{ error_message }}</p>
+    {% endif %}
+
+    <form action="/" method="post" onsubmit="return validateProcessImageForm()">
+        {% csrf_token %}
+        <input type="hidden" name="uploaded_image_url" id="uploaded_image_url" value="{{ uploaded_image_url }}">
+        <input type="submit" name="process_image" value="Обработать" id="process_image_button" {% if not uploaded_image_url %}disabled{% endif %}>
+    </form>
+
+    {% if uploaded_image_url %}
+        <h2>Загруженное изображение</h2>
+        <img src="{{ uploaded_image_url }}" alt="Uploaded Image">
+    {% endif %}
+
+    {% if latest_file %}
+        <h2>Результат распознавания</h2>
+        <img src="{{ latest_file }}" alt="Detected Image">
+    {% endif %}
+</body>
+</html>
